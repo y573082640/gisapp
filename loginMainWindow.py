@@ -71,7 +71,7 @@ class LoginMainWindow(QMainWindow):
             self.close()
             # QMessageBox.information(None, '登录', '登录成功', QMessageBox.Ok)
             self.MW = appMainWindow()
-            self.MW.setUser(name)
+            self.MW.setUserInfo(name)
             self.MW.show()
         elif flag_n:
             QMessageBox.warning(None, '警告', '密码错误', QMessageBox.Ok)

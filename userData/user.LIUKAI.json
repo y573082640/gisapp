@@ -1,0 +1,25 @@
+{
+    "user_ID": 11,
+    "user_name": "LIUKAI",
+    "user_code": "JING",
+    "points": {
+        "\u5317\u4eac\u5e08\u8303\u5927\u5b66": {
+            "state": 1,
+            "place": "\u5317\u4eac\u5e08\u8303\u5927\u5b66",
+            "locationXY": {
+                "X": 116.364139,
+                "Y": 39.962637
+            },
+            "time": [
+                2022,
+                12,
+                28
+            ],
+            "date": 20221228,
+            "text": "None",
+            "p": [],
+            "m": [],
+            "v": []
+        }
+    }
+}

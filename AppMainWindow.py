@@ -15,7 +15,8 @@ from Feature_Info import FeatureInfo
 from RoutePlanning_algorithm import route_planning
 
 import GeographicCoding
-from InitMap import MyMap
+from InitMap_re import MyMap
+from Mapbuilding import Map
 import pandas as pd
 import folium
 from datetime import datetime
@@ -39,8 +40,8 @@ class appMainWindow(QMainWindow):
         self.textEditor_form = TextEditMainWindow()
         self.musicPlayer_form = MusicPlayerMainWindow()
         self.videoPlayer_form = VideoPlayerMainWindow()
-        self.ui.btn_playVideo.clicked.connect(self.showVideoPlayerWindow)
-        self.ui.btn_playMusic.clicked.connect(self.showMusicPlayerWindow)
+        self.ui.btn_playVideo.clicked.connect(self.videoPlayer_form_show)
+        self.ui.btn_playMusic.clicked.connect(self.musicPlayer_form_show)
         self.ui.btn_editor.clicked.connect(self.textEditor_form.show)
 
         # dockWidget的隐藏和显示
@@ -48,37 +49,37 @@ class appMainWindow(QMainWindow):
         self.ui.dockWidget_RouteGuide.hide()
         self.ui.actionfeatureInfo.triggered.connect(self.ui.dockWidget_feature.show)
         self.ui.actionRouteGuide.triggered.connect(self.ui.dockWidget_RouteGuide.show)
-        self.ui.actionRouteGuide.triggered.connect(self.switchToFoliumTab)
-        self.ui.actionopen_file.triggered.connect(self.switchToMapTab)
+        self.ui.actionRouteGuide.triggered.connect(self.Change2Tab_folium)
+        self.ui.actionopen_file.triggered.connect(self.Change2Tab_mapCanvas)
 
         # 路线规划
         self.ui.btn_routeGuide.clicked.connect(self.ui.dockWidget_RouteGuide.show)
-        self.ui.btn_routeGuide.clicked.connect(self.switchToFoliumTab)
-        self.ui.btn_routeGuide.clicked.connect(self.initRouteGuidePanel)
-        self.ui.btn_routeGuide_bike.clicked.connect(self.planBikeRoute)
-        self.ui.btn_routeGuide_car.clicked.connect(self.planCarRoute)
-        self.ui.btn_routeGuide_bus.clicked.connect(self.planBusRoute)
-        self.ui.btn_routeGuide_walk.clicked.connect(self.planWalkRoute)
-        self.ui.btn_changeDire.clicked.connect(self.switchStartAndEndPoints)
+        self.ui.btn_routeGuide.clicked.connect(self.Change2Tab_folium)
+        self.ui.btn_routeGuide.clicked.connect(self.routeGuide_Init)
+        self.ui.btn_routeGuide_bike.clicked.connect(self.routePlanning_bike)
+        self.ui.btn_routeGuide_car.clicked.connect(self.routePlanning_car)
+        self.ui.btn_routeGuide_bus.clicked.connect(self.routePlanning_bus)
+        self.ui.btn_routeGuide_walk.clicked.connect(self.routePlanning_walk)
+        self.ui.btn_changeDire.clicked.connect(self.change_direction)
         self.ui.dateEdit.setDate(QDate.currentDate())
 
         # 打开文件夹获取音视频和图片的路径
-        self.ui.btn_addMusic.clicked.connect(self.addMusicFilePath)
-        self.ui.btn_addVideo.clicked.connect(self.addVideoFilePath)
-        self.ui.btn_addpicture.clicked.connect(self.addPicFilePath)
+        self.ui.btn_addMusic.clicked.connect(self.addMusicPath)
+        self.ui.btn_addVideo.clicked.connect(self.addVideoPath)
+        self.ui.btn_addpicture.clicked.connect(self.addPicPath)
 
-        self.ui.btn_editor.clicked.connect(self.getFeatureTextToSubWindow)
+        self.ui.btn_editor.clicked.connect(self.getFeatureText2subMW)
         self.textEditor_form.ui.btn_save2.clicked.connect(self.saveFeatureText)
 
         # 展示图片
         self.picLoop = 0
         self.pictures =[]
-        self.ui.btn_pre_pic.clicked.connect(self.showPrevPic)
-        self.ui.btn_next_pic.clicked.connect(self.showNextPic)
+        self.ui.btn_pre_pic.clicked.connect(self.pre_pic)
+        self.ui.btn_next_pic.clicked.connect(self.next_pic)
 
         # 关于folium 与QtWebEngineView
         self.webview = self.ui.webEngineView
-        self.data, self.m = self.initMap()
+        self.data, self.m = self.InitMap_re()
         self.webview.setHtml(self.data.getvalue().decode())
         # 初始化底图
         self.webview = self.ui.webEngineView
@@ -87,15 +88,16 @@ class appMainWindow(QMainWindow):
         geourl = 'https://a.amap.com/jsapi_demos/static/geojson/beijing.json'
         geostyle = lambda x: {'fillColor': '#0000ff', 'fillOpacity': 0.2, 'line_opacity': 0.2}
         self.zoom = 9
-        mmap = MyMap(self.mapcenter, self.pointdata, geourl, geostyle, self.zoom)  # 底图对象
+        self.map = MyMap(self.mapcenter, self.pointdata, geourl, geostyle, self.zoom)  # 底图对象
+        #mmap = MyMap(self.mapcenter, self.pointdata, geourl, geostyle, self.zoom)  # 底图对象
         # 显示
-        self.webview.load(QUrl(mmap.get_mapurl()))  # 加载点 mmap.get_mapurl() 'https://zhuanlan.zhihu.com/p/361677024' "file:/D:/00A大三下课程资料/GIS开发期末大作业/App_final/test.html"
-        self.type = 0
+        #self.webview.load(QUrl(mmap.get_mapurl()))  # 加载点 mmap.get_mapurl() 'https://zhuanlan.zhihu.com/p/361677024' "file:/D:/00A大三下课程资料/GIS开发期末大作业/App_final/test.html"
+        #self.type = 0
 
         # 地图对象
         # self.m = mmap.m
 
-        self.enableSmartSearch(self.pointdata['NAME'])
+        self.smart_search(self.pointdata['NAME'])
 
         self.walkingDepartureAddress = None  # 出发地址
         self.walkingDestinationAddress = None  # 终点地址
@@ -103,107 +105,107 @@ class appMainWindow(QMainWindow):
         # 查询槽函数连接
         self.place_now = None
 
-        self.ui.btn_addPoint.clicked.connect(self.addFeaturePoint)
-        self.ui.btn_update.clicked.connect(self.updateFeature)
+        self.ui.btn_addPoint.clicked.connect(self.addPoint2UserData)
+        self.ui.btn_update.clicked.connect(self.update_feature)
         #
-        self.ui.searchButton.clicked.connect(self.showFeatureInfo)
+        self.ui.searchButton.clicked.connect(self.showFeatures)
         # self.ui.startlineEdit.editingFinished.connect(self.getstartxy)
         # self.ui.searchButton.clicked.connect(self.showFeatures)
 
 
-    def showVideoPlayerWindow(self):
+    def videoPlayer_form_show(self):
         if self.feat.getPath('v')==[]:
             QMessageBox.warning(None,"提示","未添加过视频,请先添加视频",QMessageBox.Ok)
         else:
             self.videoPlayer_form.show()
 
-    def showMusicPlayerWindow(self):
+    def musicPlayer_form_show(self):
         if self.feat.getPath('m')==[]:
             QMessageBox.warning(None,"提示","未添加过视频,请先添加音乐",QMessageBox.Ok)
         else:
             self.musicPlayer_form.show()
 
-    def setCurrPlaceNameToDockWidget(self):   # TODO：合并到update中
+    def setPlaceNow_dock(self):   # TODO：合并到update中
         self.place_now = self.ui.endlineEdit.text()
         print(self.place_now)
         self.ui.feat_name_D1.setText(self.place_now)
 
-    def setUserInfo(self, user_name):
+    def setUser(self,user_name):
         # 要素属性展示
         self.feat = FeatureInfo(user_ID=user_name)  # 测试,登录时初始化一个用户的json文件,用
 
     # 路线规划信息
-    def initRouteGuidePanel(self):
+    def routeGuide_Init(self):
         self.ui.feat_name_D2.setText(self.ui.feat_name_D1.text())
         self.ui.lineEdit_start.setText("北京师范大学")    # TODO:在这修改起始点
         self.ui.lineEdit_stop.setText(self.place_now)
 
-    def switchStartAndEndPoints(self):
+    def change_direction(self):
         s = self.ui.lineEdit_start.text()
         self.ui.lineEdit_start.setText(self.ui.lineEdit_stop.text())
         self.ui.lineEdit_stop.setText(s)
 
-    def planBikeRoute(self):
+    def routePlanning_bike(self):
         """
         出行方式（1.公交、2.步行、3.驾车、4.骑行）
         :return:
         """
         try:
-            self.showRoutePlanResult(route_planning(self.ui.lineEdit_start.text(), self.ui.lineEdit_stop.text(), 4))
+            self.routePlaning(route_planning(self.ui.lineEdit_start.text(),self.ui.lineEdit_stop.text(),4))
             type = '4'
-            self.planRoute(self.ui.lineEdit_start.text(), self.ui.lineEdit_stop.text(), type)
+            self.route_planning(self.ui.lineEdit_start.text(), self.ui.lineEdit_stop.text(), type)
 
         except:
             self.ui.route_text.setText("请选择其他出行方式")
 
-    def planBusRoute(self):
+    def routePlanning_bus(self):
         try:
-            self.showRoutePlanResult(route_planning(self.ui.lineEdit_start.text(), self.ui.lineEdit_stop.text(), 1))
+            self.routePlaning(route_planning(self.ui.lineEdit_start.text(), self.ui.lineEdit_stop.text(), 1))
             type = '1'
-            self.planRoute(self.ui.lineEdit_start.text(), self.ui.lineEdit_stop.text(), type)
+            self.route_planning(self.ui.lineEdit_start.text(), self.ui.lineEdit_stop.text(), type)
         except:
             self.ui.route_text.setText("请选择其他出行方式")
 
-    def planCarRoute(self):
+    def routePlanning_car(self):
         try:
-            self.showRoutePlanResult(route_planning(self.ui.lineEdit_start.text(), self.ui.lineEdit_stop.text(), 3))
+            self.routePlaning(route_planning(self.ui.lineEdit_start.text(), self.ui.lineEdit_stop.text(), 3))
             type = '3'
-            self.planRoute(self.ui.lineEdit_start.text(), self.ui.lineEdit_stop.text(), type)
+            self.route_planning(self.ui.lineEdit_start.text(), self.ui.lineEdit_stop.text(), type)
         except:
             self.ui.route_text.setText("请选择其他出行方式")
 
-    def planWalkRoute(self):
+    def routePlanning_walk(self):
         try:
-            self.showRoutePlanResult(route_planning(self.ui.lineEdit_start.text(), self.ui.lineEdit_stop.text(), 2))
+            self.routePlaning(route_planning(self.ui.lineEdit_start.text(), self.ui.lineEdit_stop.text(), 2))
             type = '2'
-            self.planRoute(self.ui.lineEdit_start.text(), self.ui.lineEdit_stop.text(), type)
+            self.route_planning(self.ui.lineEdit_start.text(), self.ui.lineEdit_stop.text(), type)
         except:
             self.ui.route_text.setText("请选择其他出行方式")
 
-    def showRoutePlanResult(self, res:list[str]):
+    def routePlaning(self,res:list[str]):
         res = '\n'.join(res)
         print(res)
         self.ui.route_text.setPlainText(res)
 
     # 切换tabWidget动作
-    def switchToFoliumTab(self):
+    def Change2Tab_folium(self):
         self.ui.tabWidget.setCurrentIndex(1)
 
-    def switchToMapTab(self):
+    def Change2Tab_mapCanvas(self):
         self.ui.tabWidget.setCurrentIndex(0)
 
     # 获取属性文件(音视频）
-    def addMusicFilePath(self):
+    def addMusicPath(self):
         fp = self.getFilePath('m')
         self.feat.setPath("m",fp)
         self.musicPlayer_form.init_list(fp)
 
-    def addVideoFilePath(self):
+    def addVideoPath(self):
         fp = self.getFilePath('v')
         self.feat.setPath("v", fp)
         self.videoPlayer_form.init_list(vlist=fp)
 
-    def addPicFilePath(self):
+    def addPicPath(self):
         fp = self.getFilePath('p')
         self.feat.setPath("p", fp)
         self.pictures=fp
@@ -220,7 +222,7 @@ class appMainWindow(QMainWindow):
         return files
 
     # 文字编辑
-    def getFeatureTextToSubWindow(self):
+    def getFeatureText2subMW(self):
         """
         初始在子窗口显示已编辑的文字
         :return:
@@ -245,7 +247,7 @@ class appMainWindow(QMainWindow):
         self.ui.label_Picture.setPixmap(QPixmap(self.pictures[self.picLoop]))
         self.ui.label_Picture.setScaledContents(True)
 
-    def showPrevPic(self):
+    def pre_pic(self):
         try:
             if self.pictures == []:
                 print('请添加图片')
@@ -255,7 +257,7 @@ class appMainWindow(QMainWindow):
         except:
             return
 
-    def showNextPic(self):
+    def next_pic(self):
         try:
             if self.pictures == []:
                 QMessageBox.warning(None, '提示', '请添加图片!', QMessageBox.Ok)
@@ -265,29 +267,48 @@ class appMainWindow(QMainWindow):
         except:
             return
 
-    def zoomMap(self, posi, lat, lon, zoom):
-        mapcenter = [lat, lon]
-        geourl = 'https://a.amap.com/jsapi_demos/static/geojson/beijing.json'
-        geostyle = lambda x: {'fillColor': '#0000ff', 'fillOpacity': 0.2, 'line_opacity': 0.2}
-        mmap2 = MyMap(mapcenter, self.pointdata, geourl, geostyle, zoom)  # 底图对象
-        m2 = mmap2.m
-        folium.Marker(location=[lat, lon], popup=folium.Popup(folium.Html(
-            '<b>名称:{}</b></br> <b>经度:{}</b></br> <b>纬度:{}</b></br>'.format(posi, lat, lon),
-            script=True), max_width=2650), icon=folium.Icon(color='blue')).add_to(m2)
-        m2.save('test.html')
-        # 显示
-        self.webview.load(QUrl(mmap2.get_mapurl()))
-        # self.webview.load(QUrl("file:/D:/00A大三下课程资料/GIS开发期末大作业/App_final/test.html"))  # 加载点 mmap2.get_mapurl() 'https://zhuanlan.zhihu.com/p/361677024'
+    def zoom_to_poi(self, name, lat, lon, zoom):
+        map = self.Map.zoom_to_location(name, lat, lon, zoom)
+        html = map.get_root().render()
 
-    def initMap(self):
-        m = folium.Map(location=[39.907691, 116.39746], zoom_start=12,
-                       tiles='http://webrd02.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=7&x={x}&y={y}&z={z}',
-                       attr='default')
-        data = io.BytesIO()
-        m.save(data, close_file=False)
-        return data, m
+        # 显示地图
+        self.webview.setHtml(html)
 
-    def enableSmartSearch(self, items_list):
+    def show_map(self):
+
+        # 生成地图
+        self.map.init_map()
+        self.map.add_polygons()
+        self.map.add_markers()
+
+        # 获取地图对象
+        folium_map = self.map.m
+
+        # 渲染为HTML
+        html = folium_map.get_root().render()
+
+        # 4. 根据中心点和缩放级别设置视角
+        #center = self.map.center
+        #zoom = self.map.zoom
+        #folium_map.set_view(center, zoom)
+
+        # 将HTML添加到QWebEngineView
+        self.webview.setHtml(html)
+
+        # 显示webview
+        self.webview.show()
+
+
+
+    #def InitMap(self):
+    #    m = folium.Map(location=[39.907691, 116.39746], zoom_start=12,
+    #                   tiles='http://webrd02.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=7&x={x}&y={y}&z={z}',
+    #                   attr='default')
+    #    data = io.BytesIO()
+    #    m.save(data, close_file=False)
+    #    return data, m
+
+    def smart_search(self, items_list):
         # 增加自动补全
         self.completer = QCompleter(items_list)
         # 设置匹配模式  有三种： Qt.MatchStartsWith 开头匹配（默认）  Qt.MatchContains 内容匹配  Qt.MatchEndsWith 结尾匹配
@@ -297,7 +318,7 @@ class appMainWindow(QMainWindow):
         # 给lineedit设置补全器
         self.ui.endlineEdit.setCompleter(self.completer)
 
-    def getStartPointCoords(self):
+    def getstartxy(self):
         a = self.ui.startlineEdit.text()
         gd = GeographicCoding.GeographicCoding()
         code = gd.get_geographic_coding(a, '北京')
@@ -307,9 +328,9 @@ class appMainWindow(QMainWindow):
         c = xy.split(',')
         lon = c[0]
         lat = c[1]
-        self.zoomMap(a, lat, lon, 16)
+        self.ZoomMmap(a, lat, lon, 16)
 
-    def getEndPointCoords(self):
+    def getendxy(self):
         """
     #     已得到一个地名和坐标信息，首先判断它在不在标记的点里，若在标记的点里显示已标记的信息；
     #     若不在标记的点里，先初始化地名、坐标、时间，其他先不用搞
@@ -357,7 +378,7 @@ class appMainWindow(QMainWindow):
         #     # 显示地名
         #     self.setPlaceNow_dock()
 
-    def updateFeature(self):
+    def update_feature(self):
         """
         添加未标记点到用户数据里，添加其他信息
         :return
@@ -371,7 +392,7 @@ class appMainWindow(QMainWindow):
             QMessageBox.warning(None, '提示', '该地点未标记过!', QMessageBox.Ok)
             return
 
-    def addFeaturePoint(self):
+    def addPoint2UserData(self):
         """
         添加未标记点到用户数据里，相当于初始化
         :return:
@@ -395,7 +416,7 @@ class appMainWindow(QMainWindow):
             except:
                 QMessageBox.warning(None, '提示', '添加发生错误！', QMessageBox.Ok)
 
-    def showFeatureInfo(self):
+    def showFeatures(self):
         self.ui.dockWidget_feature.show()
         self.place_now = self.ui.endlineEdit.text()
         if self.place_now=='':
@@ -430,7 +451,7 @@ class appMainWindow(QMainWindow):
                 vid = self.feat.getPath('v')
                 self.videoPlayer_form.init_list(vid)
             else:
-                self.lat, self.lon= self.getEndPointCoords()
+                self.lat, self.lon= self.getendxy()
                 if self.lat == -1:
                     return
                 self.ui.checkBox.setPixmap(QPixmap("./images/未标记.png"))
@@ -452,11 +473,11 @@ class appMainWindow(QMainWindow):
                 self.ui.label_Picture.setScaledContents(True)
 
             # 地图显示缩放到搜索的地点
-            self.zoomMap(self.place_now, self.lat, self.lon, 15)
+            self.ZoomMmap(self.place_now, self.lat, self.lon, 15)
         except:
             QMessageBox.warning(None, '提示', '属性显示异常！', QMessageBox.Ok)
 
-    def addPointToPOIData(self):
+    def addPoint2POI(self):
         """
         把标注的点信息放入POI表格中，可能这个点已经在POI里边了，如果在的话直接ruturn，不在的话添加点
         可以先不写，不太重要
@@ -464,7 +485,7 @@ class appMainWindow(QMainWindow):
         """
         pass
 
-    def planRoute(self, a, b, type):
+    def route_planning(self, a, b, type):
         gdb = GeographicCoding.GeographicCoding()
         codeb = gdb.get_geographic_coding(a, '北京')
         pb = gdb.parse_geographic_coding(codeb)
